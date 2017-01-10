@@ -259,9 +259,9 @@ p.finally = function (callback) {
  * Utility functions.
  */
 
-var debug = false;var util = {};var slice = [].slice;
-
-
+var debug = false;
+var util = {};
+var slice = [].slice;
 function Util (Vue) {
     util = Vue.util;
     debug = Vue.config.debug || !Vue.config.silent;
@@ -864,9 +864,9 @@ function body (request, next) {
             var type = response.headers.get('Content-Type');
 
             if (isString(type) && type.indexOf('application/json') === 0) {
-
                 try {
-                    response.body = JSON.parse(text);
+                    var newText = text.replace(/:\s*(\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d+)\s*([,\}])/g, ':"$1"$2');
+                    response.body = JSON.parse(newText);
                 } catch (e) {
                     response.body = null;
                 }
@@ -1138,6 +1138,119 @@ function sendRequest(request, resolve) {
     resolve(client(request));
 }
 
+var asyncGenerator = function () {
+  function AwaitValue(value) {
+    this.value = value;
+  }
+
+  function AsyncGenerator(gen) {
+    var front, back;
+
+    function send(key, arg) {
+      return new Promise(function (resolve, reject) {
+        var request = {
+          key: key,
+          arg: arg,
+          resolve: resolve,
+          reject: reject,
+          next: null
+        };
+
+        if (back) {
+          back = back.next = request;
+        } else {
+          front = back = request;
+          resume(key, arg);
+        }
+      });
+    }
+
+    function resume(key, arg) {
+      try {
+        var result = gen[key](arg);
+        var value = result.value;
+
+        if (value instanceof AwaitValue) {
+          Promise.resolve(value.value).then(function (arg) {
+            resume("next", arg);
+          }, function (arg) {
+            resume("throw", arg);
+          });
+        } else {
+          settle(result.done ? "return" : "normal", result.value);
+        }
+      } catch (err) {
+        settle("throw", err);
+      }
+    }
+
+    function settle(type, value) {
+      switch (type) {
+        case "return":
+          front.resolve({
+            value: value,
+            done: true
+          });
+          break;
+
+        case "throw":
+          front.reject(value);
+          break;
+
+        default:
+          front.resolve({
+            value: value,
+            done: false
+          });
+          break;
+      }
+
+      front = front.next;
+
+      if (front) {
+        resume(front.key, front.arg);
+      } else {
+        back = null;
+      }
+    }
+
+    this._invoke = send;
+
+    if (typeof gen.return !== "function") {
+      this.return = undefined;
+    }
+  }
+
+  if (typeof Symbol === "function" && Symbol.asyncIterator) {
+    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
+      return this;
+    };
+  }
+
+  AsyncGenerator.prototype.next = function (arg) {
+    return this._invoke("next", arg);
+  };
+
+  AsyncGenerator.prototype.throw = function (arg) {
+    return this._invoke("throw", arg);
+  };
+
+  AsyncGenerator.prototype.return = function (arg) {
+    return this._invoke("return", arg);
+  };
+
+  return {
+    wrap: function (fn) {
+      return function () {
+        return new AsyncGenerator(fn.apply(this, arguments));
+      };
+    },
+    await: function (value) {
+      return new AwaitValue(value);
+    }
+  };
+}();
+
 var classCallCheck = function (instance, Constructor) {
   if (!(instance instanceof Constructor)) {
     throw new TypeError("Cannot call a class as a function");
@@ -1230,10 +1343,10 @@ function normalizeName(name) {
 
 var Response = function () {
     function Response(body, _ref) {
-        var url = _ref.url;
-        var headers = _ref.headers;
-        var status = _ref.status;
-        var statusText = _ref.statusText;
+        var url = _ref.url,
+            headers = _ref.headers,
+            status = _ref.status,
+            statusText = _ref.statusText;
         classCallCheck(this, Response);
 
 

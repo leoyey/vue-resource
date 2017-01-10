@@ -40,9 +40,9 @@ export default function (request, next) {
             var type = response.headers.get('Content-Type');
 
             if (isString(type) && type.indexOf('application/json') === 0) {
-
                 try {
-                    response.body = JSON.parse(text);
+                    var newText = text.replace (/:\s*(\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d+)\s*([,\}])/g, ':"$1"$2');
+                    response.body = JSON.parse(newText);
                 } catch (e) {
                     response.body = null;
                 }
