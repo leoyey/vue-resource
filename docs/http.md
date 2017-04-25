@@ -9,9 +9,9 @@ A Vue instance provides the `this.$http` service which can send HTTP requests. A
 ```js
 {
   // GET /someUrl
-  this.$http.get('/someUrl').then((response) => {
+  this.$http.get('/someUrl').then(response => {
     // success callback
-  }, (response) => {
+  }, response => {
     // error callback
   });
 }
@@ -49,6 +49,7 @@ body | `Object`, `FormData`, `string` | Data to be sent as the request body
 headers | `Object` | Headers object to be sent as HTTP request headers
 params | `Object` | Parameters object to be sent as URL parameters
 method | `string` | HTTP method (e.g. GET, POST, ...)
+responseType | `string` | Type of the response body (e.g. text, blob, json, ...)
 timeout | `number` | Request timeout in milliseconds (`0` means no timeout)
 before | `function(request)` | Callback function to modify the request options before it is sent
 progress | `function(event)` | Callback function to handle the [ProgressEvent](https://developer.mozilla.org/en-US/docs/Web/API/ProgressEvent) of uploads
@@ -63,7 +64,7 @@ A request resolves to a response object with the following properties and method
 Property | Type | Description
 -------- | ---- | -----------
 url | `string` | Response URL origin
-body | `Object`, `Blob`, `string` | Response body data
+body | `Object`, `Blob`, `string` | Response body
 headers | `Header` | Response Headers object
 ok | `boolean` | HTTP status code between 200 and 299
 status | `number` | HTTP status code of the response
@@ -78,7 +79,7 @@ blob() | `Promise` | Resolves the body as Blob object
 ```js
 {
   // POST /someUrl
-  this.$http.post('/someUrl', {foo: 'bar'}).then((response) => {
+  this.$http.post('/someUrl', {foo: 'bar'}).then(response => {
 
     // get status
     response.status;
@@ -89,10 +90,10 @@ blob() | `Promise` | Resolves the body as Blob object
     // get 'Expires' header
     response.headers.get('Expires');
 
-    // set data on vm
-    this.$set('someData', response.body);
+    // get body data
+    this.someData = response.body;
 
-  }, (response) => {
+  }, response => {
     // error callback
   });
 }
@@ -103,12 +104,12 @@ Fetch an image and use the blob() method to extract the image body content from 
 ```js
 {
   // GET /image.jpg
-  this.$http.get('/image.jpg').then((response) => {
+  this.$http.get('/image.jpg').then(response => {
 
     // resolve to Blob
     return response.blob();
 
-  }).then(blob) => {
+  }).then(blob => {
     // use image Blob
   });
 }
@@ -116,14 +117,18 @@ Fetch an image and use the blob() method to extract the image body content from 
 
 ## Interceptors
 
-Interceptors can be defined globally and are used for pre- and postprocessing of a request.
+Interceptors can be defined globally and are used for pre- and postprocessing of a request. If a request is send using `this.$http` or `this.$resource` the current Vue instance is available as `this` in a interceptor callback.
 
 ### Request processing
 ```js
-Vue.http.interceptors.push((request, next) => {
+Vue.http.interceptors.push(function(request, next) {
 
-  // modify request
+  // modify method
   request.method = 'POST';
+
+  // modify headers
+  request.headers.set('X-CSRF-TOKEN', 'TOKEN');
+  request.headers.set('Authorization', 'Bearer TOKEN');
 
   // continue to next interceptor
   next();
@@ -132,13 +137,13 @@ Vue.http.interceptors.push((request, next) => {
 
 ### Request and Response processing
 ```js
-Vue.http.interceptors.push((request, next)  => {
+Vue.http.interceptors.push(function(request, next) {
 
   // modify request
   request.method = 'POST';
 
   // continue to next interceptor
-  next((response) => {
+  next(function(response) {
 
     // modify response
     response.body = '...';
@@ -149,7 +154,7 @@ Vue.http.interceptors.push((request, next)  => {
 
 ### Return a Response and stop processing
 ```js
-Vue.http.interceptors.push((request, next) => {
+Vue.http.interceptors.push(function(request, next) {
 
   // modify request ...
 
