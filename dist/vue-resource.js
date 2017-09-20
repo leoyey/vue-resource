@@ -890,9 +890,9 @@ var json = function (request, next) {
             type = response.headers.get('Content-Type') || '';
 
             if (type.indexOf('application/json') === 0 || isJson(text)) {
+
                 try {
-                    var newText = text.replace (/:\s*(\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d+)\s*([,\}])/g, ':"$1"$2');
-                    response.body = JSON.parse(newText);
+                    response.body = JSON.parse(text.replace(/:\s*(\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d+)\s*([,\}])/g, ':"$1"$2'));
                 } catch (e) {
                     response.body = null;
                 }

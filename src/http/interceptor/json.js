@@ -22,7 +22,7 @@ export default function (request, next) {
             if (type.indexOf('application/json') === 0 || isJson(text)) {
 
                 try {
-                    response.body = JSON.parse(text);
+                    response.body = JSON.parse(text.replace(/:\s*(\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d\d+)\s*([,\}])/g, ':"$1"$2'));
                 } catch (e) {
                     response.body = null;
                 }
